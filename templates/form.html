@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Producto{% endblock title %}
+
+{% block main %}
+    <form action="/producto_detalle/" method = "get">
+        <label for="codigoProducto">Código</label>
+        <input type="text" name="codigoProducto" id="codigoProducto" required/>
+        <input type="submit" value="Buscar" />
+    </form>
+{% endblock main %}
