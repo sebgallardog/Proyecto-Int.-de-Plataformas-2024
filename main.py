@@ -1,4 +1,4 @@
-import pymysql
+# import pymysql
 from app import app
 from config import mysql
 from flask import jsonify, flash, request, render_template, redirect
@@ -61,7 +61,7 @@ def producto_detalle():
         for row in empRow:
             dict_row = dict(zip(campos, row))
             tuple_res.append(dict_row)
-        response = jsonify(tuple_res[-1])
+        response = jsonify(tuple_res[0])
         response.status_code = 200
         cursor.close()
         conn.close()
