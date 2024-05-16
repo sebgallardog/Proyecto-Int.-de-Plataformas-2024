@@ -54,7 +54,12 @@ def producto_detalle():
         codigoProducto = request.args['codigoProducto']
         conn = mysql.connect
         cursor = conn.cursor()
-        cursor.execute("SELECT tipoherramienta.TipoHerramienta_nom, producto.Producto_nom, producto.Producto_marca, precio.Precio_valor FROM producto JOIN precio ON producto.idProducto = precio.idProducto JOIN tipoherramienta ON producto.idTipoHerramienta = tipoherramienta.idTipoHerramienta WHERE producto.idProducto = %s;", {codigoProducto})
+        cursor.execute(
+            "SELECT th.TipoHerramienta_nom, pro.Producto_nom, pro.Producto_marca, pre.Precio_valor, pre.Precio_fecha "
+            "FROM producto pro "
+            "JOIN precio pre ON pro.idProducto = pre.idProducto "
+            "JOIN tipoherramienta th ON pro.idTipoHerramienta = th.idTipoHerramienta "
+            "WHERE pro.idProducto = %s;", {codigoProducto})
         campos = ["Categoría", "Producto", "Marca", "Precio"]
         empRow = cursor.fetchall()
         tuple_res = []
@@ -72,7 +77,7 @@ def producto_detalle():
 
 @app.route('/modificar_producto/', methods=['PUT'])
 def modificar_producto():
-    # No se pueden modificar filas cuya PK sea FK en otra tabla
+    # No se pueden modificar filas cuya PK sea FK en otra tabla en el motor InnoDB
     try:
         _json = request.json
         _idProducto = _json["idProducto"]
@@ -96,10 +101,11 @@ def modificar_producto():
         print(e)
 
 
-@app.route('/eliminar_producto/<int:codigoProducto>', methods=['DELETE'])
-def eliminar_producto(codigoProducto):
-    # No se pueden eliminar filas cuya PK sea FK en otra tabla
+@app.route('/eliminar_producto/', methods=['POST'])
+def eliminar_producto():
+    # No se pueden eliminar filas cuya PK sea FK en otra tabla en el motor InnoDB
     try:
+        codigoProducto = request.form['codigoProducto']
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute("DELETE FROM producto WHERE idProducto =%s", {codigoProducto})

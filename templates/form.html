@@ -3,9 +3,14 @@
 {% block title %}Búscar Producto{% endblock title %}
 
 {% block main %}
-    <form action="/producto_detalle/" method = "get">
+    <form action="/producto_detalle/" method = "GET">
         <label for="codigoProducto">Código</label>
         <input type="text" name="codigoProducto" id="codigoProducto" required/>
         <input type="submit" value="Buscar" />
+    </form>
+    <form action="/eliminar_producto/" method = "POST">
+        <label for="codigoProductoDEL">Código</label>
+        <input type="text" name="codigoProducto" id="codigoProductoDEL" required/>
+        <input type="submit" value="Eliminar" />
     </form>
 {% endblock main %}
