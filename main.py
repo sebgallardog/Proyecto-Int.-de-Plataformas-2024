@@ -10,7 +10,7 @@ OJO: El nombre de las tablas en las queries va siempre en minúscula
 
 
 @app.route('/', methods=['GET'])
-def form():
+def home():
     return render_template('form.html')
 
 
@@ -125,4 +125,4 @@ def showMessage(error=None):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')

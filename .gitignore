@@ -163,3 +163,4 @@ cython_debug/
 
 /*.rar
 /Test*.json
+/*.sql
