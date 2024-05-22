@@ -3,7 +3,6 @@ from app import app
 from config import mysql
 from flask import jsonify, flash, request, render_template, redirect
 
-
 """
 OJO: El nombre de las tablas en las queries va siempre en minúscula
 """
@@ -55,11 +54,13 @@ def producto_detalle():
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT th.TipoHerramienta_nom, pro.Producto_nom, pro.Producto_marca, pre.Precio_valor, pre.Precio_fecha "
+            "SELECT th.TipoHerramienta_nom, pro.Producto_nom, pro.Producto_marca, pre.Precio_valor "
             "FROM producto pro "
             "JOIN precio pre ON pro.idProducto = pre.idProducto "
             "JOIN tipoherramienta th ON pro.idTipoHerramienta = th.idTipoHerramienta "
-            "WHERE pro.idProducto = %s;", {codigoProducto})
+            "WHERE pro.idProducto = %s;",
+            {codigoProducto}
+        )
         campos = ["Categoría", "Producto", "Marca", "Precio"]
         empRow = cursor.fetchall()
         tuple_res = []
@@ -70,7 +71,7 @@ def producto_detalle():
         response.status_code = 200
         cursor.close()
         conn.close()
-        return response
+        return render_template('form.html', producto_detalle=response.json)
     except Exception as e:
         print(e)
 
@@ -97,6 +98,28 @@ def modificar_producto():
             return response
         else:
             return showMessage()
+    except Exception as e:
+        print(e)
+
+
+@app.route
+def actualizar_precio():
+    try:
+        cod_producto = request.args['codigoProducto']
+        nuevo_precio = request.args['nuevo_precio']
+        conn = mysql.connect
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO precio (idPrecio, idProducto, Precio_fecha, Precio_valor) "
+            "VALUES (DEFAULT, %s, CURRENT_TIMESTAMP(), %s);",
+            {cod_producto, nuevo_precio}
+        )
+        conn.commit()
+        response = jsonify(f'Precio del producto de código {cod_producto} actualizado a {nuevo_precio}')
+        response.status_code = 200
+        cursor.close()
+        conn.close()
+        return response
     except Exception as e:
         print(e)
 

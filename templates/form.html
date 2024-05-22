@@ -3,6 +3,16 @@
 {% block title %}Búscar Producto{% endblock title %}
 
 {% block main %}
+    {% if producto_detalle %}
+    <table>
+    {% for k, v in producto_detalle.items() %}
+        <tr>
+        <td>{{ k }}:</td>
+        <td>{{ v }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+    {% endif %}
     <form action="/producto_detalle/" method = "GET">
         <label for="codigoProducto">Código</label>
         <input type="text" name="codigoProducto" id="codigoProducto" required/>
