@@ -65,8 +65,8 @@ def producto_detalle():
         empRow = cursor.fetchall()
         tuple_res = []
         for row in empRow:
-            dict_row = dict(zip(campos, row))
-            tuple_res.append(dict_row)
+            tuple_row = tuple(zip(campos, row))
+            tuple_res.append(tuple_row)
         response = jsonify(tuple_res[0])
         response.status_code = 200
         cursor.close()

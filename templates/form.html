@@ -5,7 +5,7 @@
 {% block main %}
     {% if producto_detalle %}
     <table>
-    {% for k, v in producto_detalle.items() %}
+    {% for k, v in producto_detalle %}
         <tr>
         <td>{{ k }}:</td>
         <td>{{ v }}</td>
