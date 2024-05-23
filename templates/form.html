@@ -13,14 +13,14 @@
     {% endfor %}
     </table>
     {% endif %}
-    <form action="/producto_detalle/" method = "GET">
-        <label for="codigoProducto">Código</label>
-        <input type="text" name="codigoProducto" id="codigoProducto" required/>
+    <form action="/producto_detalle" method = "GET">
+        <label for="idProducto">Código</label>
+        <input type="text" name="idProducto" id="idProducto" required/>
         <input type="submit" value="Buscar" />
     </form>
-    <form action="/eliminar_producto/" method = "POST">
-        <label for="codigoProductoDEL">Código</label>
-        <input type="text" name="codigoProducto" id="codigoProductoDEL" required/>
+    <form action="/eliminar_producto" method = "POST">
+        <label for="idProductoDEL">Código</label>
+        <input type="text" name="idProducto" id="idProductoDEL" required/>
         <input type="submit" value="Eliminar" />
     </form>
 {% endblock main %}
