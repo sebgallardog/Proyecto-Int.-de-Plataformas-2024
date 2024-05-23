@@ -15,13 +15,13 @@ def home():
     return render_template('form.html')
 
 
-@app.route('/create/<idTipoHerramienta>/<Producto_nom>/<Producto_marca>/<Producto_stock>', methods=['POST'])
-def create_producto(idTipoHerramienta, Producto_nom, Producto_marca, Producto_stock):
+@app.route('/create/<idCategoria>/<Producto>/<Marca>/<Stock>', methods=['POST'])
+def create_producto(idCategoria, Producto, Marca, Stock):
     try:
         conn = mysql.connect
         cursor = conn.cursor()
-        sqlQuery = """INSERT INTO producto(idProducto, idTipoHerramienta, Producto_nom, Producto_marca, Producto_stock) VALUES(DEFAULT, %s, %s, %s, %s)"""
-        bindData = (idTipoHerramienta, Producto_nom, Producto_marca, Producto_stock)
+        sqlQuery = """INSERT INTO producto(idProducto, idCategoria, Producto, Marca, Stock) VALUES(DEFAULT, %s, %s, %s, %s)"""
+        bindData = (idCategoria, Producto, Marca, Stock)
         cursor.execute(sqlQuery, bindData)
         conn.commit()
         response = jsonify('Producto agregado exitosamente')
@@ -40,15 +40,15 @@ def producto():
         cursor = conn.cursor()
         cursor.execute(
             "SELECT "
-            "th.idTipoHerramienta idCategoría, "
-            "th.TipoHerramienta_nom Categoría, "
+            "cat.idCategoria, "
+            "cat.Categoria, "
             "pro.idProducto, "
-            "pro.Producto_nom Producto, "
-            "pro.Producto_marca Marca, "
-            "pre.Precio_valor Precio "
+            "pro.Producto, "
+            "pro.Marca, "
+            "pre.Precio "
             "FROM producto pro "
             "JOIN precio pre ON pro.idProducto = pre.idProducto "
-            "JOIN tipoherramienta th ON pro.idTipoHerramienta = th.idTipoHerramienta "
+            "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
             ";"
         )
         empRows = cursor.fetchall()
@@ -69,16 +69,16 @@ def producto_detalle():
         cursor = conn.cursor()
         cursor.execute(
             "SELECT "
-            "th.TipoHerramienta_nom Categoría, "
-            "pro.Producto_nom Producto, "
-            "pro.Producto_marca Marca, "
-            "pre.Precio_valor Precio, "
-            "pre.Precio_fecha Última_modificación_precio "
+            "cat.Categoria, "
+            "pro.Producto, "
+            "pro.Marca, "
+            "pre.Precio, "
+            "pre.Fecha_modificacion_precio "
             "FROM producto pro "
-            "JOIN tipoherramienta th ON pro.idTipoHerramienta = th.idTipoHerramienta "
+            "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
             "JOIN precio pre ON pro.idProducto = pre.idProducto "
             "WHERE pro.idProducto = %s "
-            "ORDER BY pre.Precio_fecha DESC LIMIT 1;",
+            "ORDER BY pre.Fecha_modificacion_precio DESC LIMIT 1;",
             {id_producto}
         )
         empRow = cursor.fetchone()
@@ -100,13 +100,13 @@ def modificar_producto():
     try:
         _json = request.json
         _idProducto = _json["idProducto"]
-        _idTipoHerramienta = _json["idTipoHerramienta"]
-        _Producto_nom = _json["Producto_nom"]
-        _Producto_marca = _json["Producto_marca"]
-        _Producto_stock = _json["Producto_stock"]
-        if _idProducto and _idTipoHerramienta and _Producto_nom and _Producto_marca and _Producto_stock and request.method == 'PUT':
-            sqlQuery = "UPDATE producto SET idTipoHerramienta=%s, Producto_nom=%s, Producto_marca=%s, Producto_stock=%s WHERE idProducto=%s"
-            bindData = (_idTipoHerramienta, _Producto_nom, _Producto_marca, _Producto_stock, _idProducto,)
+        _idCategoria = _json["idCategoria"]
+        _Producto = _json["Producto"]
+        _Marca = _json["Marca"]
+        _Stock = _json["Stock"]
+        if _idProducto and _idCategoria and _Producto and _Marca and _Stock and request.method == 'PUT':
+            sqlQuery = "UPDATE producto SET idCategoria=%s, Producto=%s, Marca=%s, Stock=%s WHERE idProducto=%s"
+            bindData = (_idCategoria, _Producto, _Marca, _Stock, _idProducto,)
             conn = mysql.connect
             cursor = conn.cursor()
             cursor.execute(sqlQuery, bindData)
@@ -123,17 +123,17 @@ def modificar_producto():
 @app.route('/eliminar_producto', methods=['POST'])
 def actualizar_precio():
     try:
-        cod_producto = request.args['idProducto']
-        nuevo_precio = request.args['nuevo_precio']
+        Id_producto = request.args['idProducto']
+        nuevo_precio = request.args['Nuevo_Precio']
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO precio (idPrecio, idProducto, Precio_fecha, Precio_valor) "
             "VALUES (DEFAULT, %s, CURRENT_TIMESTAMP(), %s);",
-            {cod_producto, nuevo_precio}
+            {Id_producto, nuevo_precio}
         )
         conn.commit()
-        response = jsonify(f'Precio del producto de código {cod_producto} actualizado a {nuevo_precio}')
+        response = jsonify(f'Precio del producto de código {Id_producto} actualizado a {nuevo_precio}')
         response.status_code = 200
         cursor.close()
         conn.close()
