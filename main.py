@@ -1,9 +1,7 @@
-# import pymysql
-from MySQLdb.cursors import DictCursor, Cursor
-
 from app import app
 from config import mysql
 from flask import jsonify, flash, request, render_template, redirect
+from ValorDolar import ValorDolar
 
 """
 OJO: El nombre de las tablas en las queries va siempre en minúscula
@@ -84,6 +82,8 @@ def producto_detalle():
         empRow = cursor.fetchone()
         if not empRow:
             return not_found()
+        # dolar = ValorDolar()
+        # empRow["Precio"] *= dolar.valor
         response = jsonify(empRow)
         # response.status_code = 200
         cursor.close()
