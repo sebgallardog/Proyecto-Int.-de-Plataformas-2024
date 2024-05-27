@@ -1,8 +1,7 @@
 from app import app
 from config import mysql
 from flask import jsonify, flash, request, render_template, redirect
-from ValorDolar import ValorDolar
-
+import ValorDolar
 """
 OJO: El nombre de las tablas en las queries va siempre en minúscula
 """
@@ -32,7 +31,7 @@ def create_producto(idCategoria, Producto, Marca, Stock):
 
 
 @app.route('/listado_productos')
-def producto():
+def productos():
     try:
         conn = mysql.connect
         cursor = conn.cursor()
@@ -85,10 +84,9 @@ def producto_detalle():
         # dolar = ValorDolar()
         # empRow["Precio"] *= dolar.valor
         response = jsonify(empRow)
-        # response.status_code = 200
+        response.status_code = 200
         cursor.close()
         conn.close()
-        # return render_template('form.html', producto_detalle=response.json)
         return response
     except Exception as e:
         print(e)
@@ -104,6 +102,30 @@ def modificar_producto():
         _Producto = _json["Producto"]
         _Marca = _json["Marca"]
         _Stock = _json["Stock"]
+        cambios = ""
+        query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
+        if not _idProducto:
+            return not_found
+        else:
+            if _idCategoria:
+                cambios += f"idCategoria={_idCategoria}"
+
+            if _Producto:
+                if _idCategoria:
+                    cambios += ", "
+                cambios += f"Producto={_Producto}"
+
+            if _Marca:
+                if _idCategoria or _Producto:
+                    cambios += ", "
+                cambios += f"Marca={_Marca}"
+                
+            if _Stock:
+                if _idCategoria or _Producto or _Marca:
+                    cambios += ", "
+                cambios += f"Stock={_Stock}"
+
+
         if _idProducto and _idCategoria and _Producto and _Marca and _Stock and request.method == 'PUT':
             sqlQuery = "UPDATE producto SET idCategoria=%s, Producto=%s, Marca=%s, Stock=%s WHERE idProducto=%s"
             bindData = (_idCategoria, _Producto, _Marca, _Stock, _idProducto,)
@@ -117,10 +139,10 @@ def modificar_producto():
         else:
             return not_found()
     except Exception as e:
-        print(e)
+        print(e)  
 
 
-@app.route('/eliminar_producto', methods=['POST'])
+@app.route('/actualizar_precio', methods=['PUT'])
 def actualizar_precio():
     try:
         Id_producto = request.args['idProducto']
