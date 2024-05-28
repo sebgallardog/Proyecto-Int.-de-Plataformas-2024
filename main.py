@@ -1,7 +1,9 @@
+# from errores import *
 from app import app
 from config import mysql
 from flask import jsonify, flash, request, render_template, redirect
-import ValorDolar
+from ValorDolar import valor_dolar
+
 """
 OJO: El nombre de las tablas en las queries va siempre en minúscula
 """
@@ -61,6 +63,9 @@ def productos():
 @app.route('/producto_detalle', methods=['GET'])
 def producto_detalle():
     try:
+        dolar = valor_dolar()  # consulta la tasa de cambio de USD a CLP
+        if type(dolar) is not float:
+            raise dolar  # si dolar no es float entonces es un error de la API del BCCh
         id_producto = request.args['idProducto']
         conn = mysql.connect
         cursor = conn.cursor()
@@ -78,20 +83,22 @@ def producto_detalle():
             "ORDER BY pre.Fecha_modificacion_precio DESC LIMIT 1;",
             {id_producto}
         )
-        empRow = cursor.fetchone()
-        if not empRow:
-            return not_found()
-        # dolar = ValorDolar()
-        # empRow["Precio"] *= dolar.valor
-        response = jsonify(empRow)
-        response.status_code = 200
+        emp_row = cursor.fetchone()
         cursor.close()
         conn.close()
+        if not emp_row:
+            return not_found()
+        emp_row["Precio"] = round(emp_row["Precio"] * dolar)  # cambia el precio de USD a CLP
+        response = jsonify(emp_row)
+        response.status_code = 200
         return response
     except Exception as e:
-        print(e)
+        error = {"type": str(type(e)), "message": str(e)}
+        response = jsonify(error)
+        return response
 
 
+# WIP
 @app.route('/modificar_producto', methods=['PUT'])
 def modificar_producto():
     # No se pueden modificar filas cuya PK sea FK en otra tabla en el motor InnoDB
@@ -119,12 +126,11 @@ def modificar_producto():
                 if _idCategoria or _Producto:
                     cambios += ", "
                 cambios += f"Marca={_Marca}"
-                
+
             if _Stock:
                 if _idCategoria or _Producto or _Marca:
                     cambios += ", "
                 cambios += f"Stock={_Stock}"
-
 
         if _idProducto and _idCategoria and _Producto and _Marca and _Stock and request.method == 'PUT':
             sqlQuery = "UPDATE producto SET idCategoria=%s, Producto=%s, Marca=%s, Stock=%s WHERE idProducto=%s"
@@ -139,7 +145,7 @@ def modificar_producto():
         else:
             return not_found()
     except Exception as e:
-        print(e)  
+        print(e)
 
 
 @app.route('/actualizar_precio', methods=['PUT'])
