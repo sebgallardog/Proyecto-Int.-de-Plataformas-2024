@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Búscar Producto{% endblock title %}
+{% block title %}Formulario para pruebas{% endblock title %}
 
 {% block main %}
     {% if producto_detalle %}
@@ -13,9 +13,11 @@
     {% endfor %}
     </table>
     {% endif %}
-    <form action="/producto_detalle" method = "GET">
+    <form action="/producto_detalle" method = "PUT">
         <label for="idProducto">Código</label>
         <input type="text" name="idProducto" id="idProducto" required/>
+        <label for="idProducto2">Código</label>
+        <input type="text" name="idProducto" id="idProducto2" required/>
         <input type="submit" value="Buscar" />
     </form>
     <form action="/eliminar_producto" method = "POST">

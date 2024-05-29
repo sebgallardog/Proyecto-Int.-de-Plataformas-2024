@@ -14,4 +14,4 @@ def valor_dolar():
         tipo_cambio = float(response.Series['Obs'][-1]['value'])
         return tipo_cambio
     except Exception as e:
-        return e
+        raise e

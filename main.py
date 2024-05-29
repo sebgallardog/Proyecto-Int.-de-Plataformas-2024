@@ -11,6 +11,7 @@ OJO: El nombre de las tablas en las queries va siempre en minúscula
 
 @app.route('/', methods=['GET'])
 def home():
+    """Esto es sólo para realizar las pruebas"""
     return render_template('form.html')
 
 
@@ -34,27 +35,45 @@ def create_producto(idCategoria, Producto, Marca, Stock):
 
 @app.route('/listado_productos')
 def productos():
+    """
+    Devuelve en una respond con un JSON con los datos de todos los productos en la DB.
+    Cada elemento dentro del json es un diccionario con los siguientes datos de un producto:
+        Categoria: string, nombre de la categoría del producto.
+        idProducto: int, PK del producto.
+        Producto: string, nombre del producto.
+        Marca: string, nombre de la marca del producto.
+        Stock: int, stock del producto.
+        PrecioUSD: float, valor del producto en dólares estadounidenses.
+        PrecioCLP: int, valor del producto en pesos chilenos.
+    """
     try:
+        dolar = valor_dolar()
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute(
             "SELECT "
-            "cat.idCategoria, "
             "cat.Categoria, "
             "pro.idProducto, "
             "pro.Producto, "
             "pro.Marca, "
-            "pre.Precio "
+            "pro.Stock, "
+            "MAX(pre.Precio) PrecioUSD "
             "FROM producto pro "
             "JOIN precio pre ON pro.idProducto = pre.idProducto "
             "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
+            "GROUP BY cat.Categoria, pro.idProducto, pro.Producto, pro.Marca, pro.Stock "
             ";"
         )
-        empRows = cursor.fetchall()
-        response = jsonify(empRows)
-        response.status_code = 200
+        emp_rows = cursor.fetchall()
+        if len(emp_rows) <= 0:
+            return not_found()
+        for row in emp_rows:
+            row["PrecioUSD"] = float(row["PrecioUSD"])  # Convierte PrecioUSD de Decimal a float
+            row["PrecioCLP"] = round(row["PrecioUSD"] * dolar)  # Agrega el precio en CLP a la fila
         cursor.close()
         conn.close()
+        response = jsonify(emp_rows)
+        response.status_code = 200
         return response
     except Exception as e:
         print(e)
@@ -62,10 +81,19 @@ def productos():
 
 @app.route('/producto_detalle', methods=['GET'])
 def producto_detalle():
+    """
+    Usa request.args['idProducto'] y devuelve una respond con los datos del producto con PK igual a idProducto en la DB.
+    Los datos son enviados en formato json e incluyen:
+        Categoria: string, nombre de la categoría del producto.
+        Producto: string, nombre del producto.
+        Marca: string, nombre de la marca del producto.
+        Stock: int, stock del producto
+        PrecioUSD: float, valor del producto en dólares estadounidenses.
+        PrecioCLP: int, valor del producto en pesos chilenos.
+        Fecha_modificacion_precio: datetime.datetime, fecha del último cambio de precio del producto.
+    """
     try:
         dolar = valor_dolar()  # consulta la tasa de cambio de USD a CLP
-        if type(dolar) is not float:
-            raise dolar  # si dolar no es float entonces es un error de la API del BCCh
         id_producto = request.args['idProducto']
         conn = mysql.connect
         cursor = conn.cursor()
@@ -74,7 +102,8 @@ def producto_detalle():
             "cat.Categoria, "
             "pro.Producto, "
             "pro.Marca, "
-            "pre.Precio, "
+            "pro.Stock, "
+            "pre.Precio PrecioUSD, "
             "pre.Fecha_modificacion_precio "
             "FROM producto pro "
             "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
@@ -88,12 +117,13 @@ def producto_detalle():
         conn.close()
         if not emp_row:
             return not_found()
-        emp_row["Precio"] = round(emp_row["Precio"] * dolar)  # cambia el precio de USD a CLP
+        emp_row["PrecioUSD"] = float(emp_row["PrecioUSD"])  # Convierte PrecioUSD de Decimal a float
+        emp_row["PrecioCLP"] = round(emp_row["PrecioUSD"] * dolar)  # Agrega el precio en CLP a la fila
         response = jsonify(emp_row)
         response.status_code = 200
         return response
     except Exception as e:
-        error = {"type": str(type(e)), "message": str(e)}
+        error = {"type": str(type(e)), "message": str(e), "ups": "Esto lo usaba para debugear, debía borrarlo pero se me olvidó"}
         response = jsonify(error)
         return response
 
@@ -112,7 +142,7 @@ def modificar_producto():
         cambios = ""
         query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
         if not _idProducto:
-            return not_found
+            return not_found()
         else:
             if _idCategoria:
                 cambios += f"idCategoria={_idCategoria}"
@@ -132,7 +162,6 @@ def modificar_producto():
                     cambios += ", "
                 cambios += f"Stock={_Stock}"
 
-        if _idProducto and _idCategoria and _Producto and _Marca and _Stock and request.method == 'PUT':
             sqlQuery = "UPDATE producto SET idCategoria=%s, Producto=%s, Marca=%s, Stock=%s WHERE idProducto=%s"
             bindData = (_idCategoria, _Producto, _Marca, _Stock, _idProducto,)
             conn = mysql.connect
@@ -142,8 +171,6 @@ def modificar_producto():
             response = jsonify("Producto con código {idProducto} modificado".format(idProducto=_idProducto))
             response.status_code = 200
             return response
-        else:
-            return not_found()
     except Exception as e:
         print(e)
 
@@ -194,9 +221,9 @@ def not_found(error=None):
         'status': 404,
         'message': 'Record not found: ' + request.url,
     }
-    respone = jsonify(message)
-    respone.status_code = 404
-    return respone
+    respond = jsonify(message)
+    respond.status_code = 404
+    return respond
 
 
 if __name__ == "__main__":
