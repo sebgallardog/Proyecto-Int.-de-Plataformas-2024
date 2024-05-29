@@ -132,15 +132,22 @@ def producto_detalle():
 @app.route('/modificar_producto', methods=['PUT'])
 def modificar_producto():
     # No se pueden modificar filas cuya PK sea FK en otra tabla en el motor InnoDB
+    r=request
+    if request.is_json:
+        r=request.json
+    elif request.args:
+        r=request.args
+    elif request.form:
+        r=request.args
+    else:
+        return not_found()
     try:
-        _json = request.json
-        _idProducto = _json["idProducto"]
-        _idCategoria = _json["idCategoria"]
-        _Producto = _json["Producto"]
-        _Marca = _json["Marca"]
-        _Stock = _json["Stock"]
+        _idProducto = r["idProducto"]
+        _idCategoria = r["idCategoria"]
+        _Producto = r["Producto"]
+        _Marca = r["Marca"]
+        _Stock = r["Stock"]
         cambios = ""
-        query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
         if not _idProducto:
             return not_found()
         else:
@@ -150,23 +157,23 @@ def modificar_producto():
             if _Producto:
                 if _idCategoria:
                     cambios += ", "
-                cambios += f"Producto={_Producto}"
+                cambios += f"Producto='{_Producto}'"
 
             if _Marca:
                 if _idCategoria or _Producto:
                     cambios += ", "
-                cambios += f"Marca={_Marca}"
+                cambios += f"Marca='{_Marca}'"
 
             if _Stock:
                 if _idCategoria or _Producto or _Marca:
                     cambios += ", "
                 cambios += f"Stock={_Stock}"
-
-            sqlQuery = "UPDATE producto SET idCategoria=%s, Producto=%s, Marca=%s, Stock=%s WHERE idProducto=%s"
-            bindData = (_idCategoria, _Producto, _Marca, _Stock, _idProducto,)
+            print(cambios)
+            query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
+            print(query)
             conn = mysql.connect
             cursor = conn.cursor()
-            cursor.execute(sqlQuery, bindData)
+            cursor.execute(query)
             conn.commit()
             response = jsonify("Producto con código {idProducto} modificado".format(idProducto=_idProducto))
             response.status_code = 200
