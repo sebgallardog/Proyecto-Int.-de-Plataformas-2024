@@ -38,6 +38,7 @@ def productos():
     """
     Devuelve en una respond con un JSON con los datos de todos los productos en la DB.
     Cada elemento dentro del json es un diccionario con los siguientes datos de un producto:
+
         Categoria: string, nombre de la categoría del producto.
         idProducto: int, PK del producto.
         Producto: string, nombre del producto.
@@ -80,10 +81,11 @@ def productos():
 
 
 @app.route('/producto_detalle', methods=['GET'])
-def producto_detalle():
+def producto_detalle(id_producto=None):
     """
     Usa request.args['idProducto'] y devuelve una respond con los datos del producto con PK igual a idProducto en la DB.
     Los datos son enviados en formato json e incluyen:
+
         Categoria: string, nombre de la categoría del producto.
         Producto: string, nombre del producto.
         Marca: string, nombre de la marca del producto.
@@ -91,10 +93,13 @@ def producto_detalle():
         PrecioUSD: float, valor del producto en dólares estadounidenses.
         PrecioCLP: int, valor del producto en pesos chilenos.
         Fecha_modificacion_precio: datetime.datetime, fecha del último cambio de precio del producto.
+
+    También es usado por modificar_producto() para recuperar la nueva representación del producto.
     """
     try:
         dolar = valor_dolar()  # consulta la tasa de cambio de USD a CLP
-        id_producto = request.args['idProducto']
+        if not id_producto:
+            id_producto = request.args['idProducto']
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute(
@@ -119,89 +124,126 @@ def producto_detalle():
             return not_found()
         emp_row["PrecioUSD"] = float(emp_row["PrecioUSD"])  # Convierte PrecioUSD de Decimal a float
         emp_row["PrecioCLP"] = round(emp_row["PrecioUSD"] * dolar)  # Agrega el precio en CLP a la fila
-        response = jsonify(emp_row)
-        response.status_code = 200
-        return response
+        if not id_producto:
+            response = jsonify(emp_row)
+            response.status_code = 200
+            return response
+        else:
+            return emp_row
     except Exception as e:
-        error = {"type": str(type(e)), "message": str(e), "ups": "Esto lo usaba para debugear, debía borrarlo pero se me olvidó"}
+        error = {"type": str(type(e)), "message": str(e),
+                 "ups": "Esto lo usaba para debugear, debía borrarlo pero se me olvidó"}
         response = jsonify(error)
         return response
 
 
-# WIP
 @app.route('/modificar_producto', methods=['PUT'])
 def modificar_producto():
-    # No se pueden modificar filas cuya PK sea FK en otra tabla en el motor InnoDB
-    r=request
+    """
+    Extrae los datos desde request.json .form o .args, pero sólo se ha testeado desde .json.
+    Modifica los datos de un producto en la DB. Los parámetros son todos opcionales menos idProducto, estos son:
+
+        idProducto: int obligatorio, PK del producto cuyos datos se busca modificar.
+        idCategoria: int, PK de la nueva categoría del producto, valores de 1 a 6.
+        Producto: string, nuevo nombre del producto.
+        Marca: string, nombre de la nueva marca del producto.
+        Stock: int, nuevo stock del producto.
+        Precio: float, nuevo valor del producto en dólares estadounidenses. Si se ingresa, se llamará a la función
+            actualizar_ precio(id_producto=idProducto, nuevo_precio=Precio)
+
+    Retorna un json con 2 items:
+
+        msg: string, un mensaje que confirma que se ha alterado la DB.
+        nueva_data: dict, el resultado de producto_detalle(id_producto=idProducto) una vez actualizada la DB.
+    """
     if request.is_json:
-        r=request.json
-    elif request.args:
-        r=request.args
-    elif request.form:
-        r=request.args
+        rd = request.json
+    elif len(request.args) <= 1:
+        rd = request.args.to_dict()
+    elif len(request.form) <= 1:
+        rd = request.form.to_dict()
     else:
         return not_found()
     try:
-        _idProducto = r["idProducto"]
-        _idCategoria = r["idCategoria"]
-        _Producto = r["Producto"]
-        _Marca = r["Marca"]
-        _Stock = r["Stock"]
-        cambios = ""
-        if not _idProducto:
-            return not_found()
+        if "idProducto" in rd.keys():
+            _idProducto = int(rd["idProducto"])
         else:
+            return not_found()
+
+        if "idCategoria" in rd.keys():
+            _idCategoria = int(rd["idCategoria"])
+        else:
+            _idCategoria = ""
+
+        if "Producto" in rd.keys():
+            _Producto = str(rd["Producto"])
+        else:
+            _Producto = ""
+
+        if "Marca" in rd.keys():
+            _Marca = str(rd["Marca"])
+        else:
+            _Marca = ""
+
+        if "Stock" in rd.keys():
+            _Stock = int(rd["Stock"])
+        else:
+            _Stock = ""
+
+        if "Precio" in rd.keys():
+            _Precio = float(rd["Precio"])
+        else:
+            _Precio = ""
+
+        cambios = ""
+
+        if _idCategoria:
+            cambios += f"idCategoria={_idCategoria}"
+
+        if _Producto:
             if _idCategoria:
-                cambios += f"idCategoria={_idCategoria}"
+                cambios += ", "
+            cambios += f"Producto='{_Producto}'"
 
-            if _Producto:
-                if _idCategoria:
-                    cambios += ", "
-                cambios += f"Producto='{_Producto}'"
+        if _Marca:
+            if _idCategoria or _Producto:
+                cambios += ", "
+            cambios += f"Marca='{_Marca}'"
 
-            if _Marca:
-                if _idCategoria or _Producto:
-                    cambios += ", "
-                cambios += f"Marca='{_Marca}'"
-
-            if _Stock:
-                if _idCategoria or _Producto or _Marca:
-                    cambios += ", "
-                cambios += f"Stock={_Stock}"
-            print(cambios)
-            query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
-            print(query)
-            conn = mysql.connect
-            cursor = conn.cursor()
-            cursor.execute(query)
-            conn.commit()
-            response = jsonify("Producto con código {idProducto} modificado".format(idProducto=_idProducto))
-            response.status_code = 200
-            return response
-    except Exception as e:
-        print(e)
-
-
-@app.route('/actualizar_precio', methods=['PUT'])
-def actualizar_precio():
-    try:
-        Id_producto = request.args['idProducto']
-        nuevo_precio = request.args['Nuevo_Precio']
+        if _Stock:
+            if _idCategoria or _Producto or _Marca:
+                cambios += ", "
+            cambios += f"Stock={_Stock}"
+        query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
+        print(query)
         conn = mysql.connect
         cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO precio (idPrecio, idProducto, Precio_fecha, Precio_valor) "
-            "VALUES (DEFAULT, %s, CURRENT_TIMESTAMP(), %s);",
-            {Id_producto, nuevo_precio}
-        )
+        if _Precio:
+            actualizar_precio(_idProducto, _Precio)
+        cursor.execute(query)
         conn.commit()
-        response = jsonify(f'Precio del producto de código {Id_producto} actualizado a {nuevo_precio}')
+        nueva_data = producto_detalle(_idProducto)
+        msg = f"Producto con código {_idProducto} modificado"
+        response = jsonify({"nueva_data": nueva_data, "msg": msg})
         response.status_code = 200
-        cursor.close()
-        conn.close()
         return response
     except Exception as e:
         print(e)
+
+
+def actualizar_precio(id_producto, nuevo_precio):
+    try:
+        conn = mysql.connect
+        cursor = conn.cursor()
+        query = (f"INSERT INTO precio (idPrecio, idProducto, Fecha_modificacion_precio, Precio) "
+                 f"VALUES (DEFAULT, {id_producto}, CURRENT_TIMESTAMP(), {nuevo_precio});")
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return
+    except Exception as e:
+        raise e
 
 
 @app.route('/eliminar_producto', methods=['POST'])
