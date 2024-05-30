@@ -1,9 +1,7 @@
-# import pymysql
-from MySQLdb.cursors import DictCursor, Cursor
-
 from app import app
 from config import mysql
-from flask import jsonify, flash, request, render_template, redirect
+from flask import jsonify, request, render_template
+from ValorDolar import valor_dolar
 
 """
 OJO: El nombre de las tablas en las queries va siempre en minúscula
@@ -12,67 +10,142 @@ OJO: El nombre de las tablas en las queries va siempre en minúscula
 
 @app.route('/', methods=['GET'])
 def home():
+    """Esto es sólo para realizar las pruebas"""
     return render_template('form.html')
 
 
-@app.route('/create/<idCategoria>/<Producto>/<Marca>/<Stock>', methods=['POST'])
-def create_producto(idCategoria, Producto, Marca, Stock):
+@app.route('/create', methods=['POST'])
+def create_producto():
+    """
+    Crea un nuevo producto en la DB. Requiere los siguientes campos:
+
+        idCategoria: int, PK de la categoría del producto, valores de 1 a 6.
+        Producto: string, nombre del producto.
+        Marca: string, nombre de la marca del producto.
+        Stock: int, stock del producto.
+        Precio: float, valor del producto en dólares estadounidenses.
+
+    De ser exitosa la transacción, se llama a producto_detalle() con la PK autogenerada del nuevo producto y
+    retorna un json con 2 objetos:
+
+        msg: string, un mensaje que confirma que se ha creado un nuevo objeto.
+        data: dict, el resultado de producto_detalle().
+    """
+    if request.is_json:
+        rd = request.json
+    elif len(request.args) >= 1:
+        rd = request.args.to_dict()
+    elif len(request.form) >= 1:
+        rd = request.form.to_dict()
+    else:
+        return not_found()
     try:
+        id_categoria = int(rd["idCategoria"])
+        producto = str(rd["Producto"])
+        marca = str(rd["Marca"])
+        stock = int(rd["Stock"])
+        precio = float(rd["Precio"])
         conn = mysql.connect
         cursor = conn.cursor()
-        sqlQuery = """INSERT INTO producto(idProducto, idCategoria, Producto, Marca, Stock) VALUES(DEFAULT, %s, %s, %s, %s)"""
-        bindData = (idCategoria, Producto, Marca, Stock)
-        cursor.execute(sqlQuery, bindData)
-        conn.commit()
-        response = jsonify('Producto agregado exitosamente')
-        response.status_code = 200
+        query_producto = ("INSERT INTO producto(idProducto, idCategoria, Producto, Marca, Stock) "
+                          "VALUES(DEFAULT, %s, %s, %s, %s)")
+        data_producto = (id_categoria, producto, marca, stock)
+        cursor.execute(query_producto, data_producto)
+        id_producto = cursor.lastrowid
+        actualizar_precio(id_producto, precio, conn=conn, cursor=cursor)
         cursor.close()
+        conn.commit()
         conn.close()
+
+        nuevo_producto = producto_detalle(id_producto)
+        msg = 'Producto agregado exitosamente'
+        response = jsonify({"data": nuevo_producto, "msg": msg})
+        response.status_code = 200
         return response
     except Exception as e:
         print(e)
 
 
 @app.route('/listado_productos')
-def producto():
+def productos():
+    """
+    Devuelve en una respond con un JSON con los datos de todos los productos en la DB.
+    Cada elemento dentro del json es un dict que representa a un producto y contiene los siguientes datos de este:
+
+        Categoria: string, nombre de la categoría del producto.
+        idProducto: int, PK del producto.
+        Producto: string, nombre del producto.
+        Marca: string, nombre de la marca del producto.
+        Stock: int, stock del producto.
+        PrecioUSD: float, valor del producto en dólares estadounidenses.
+        PrecioCLP: int, valor del producto en pesos chilenos.
+    """
     try:
+        dolar = valor_dolar()
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute(
             "SELECT "
-            "cat.idCategoria, "
             "cat.Categoria, "
             "pro.idProducto, "
             "pro.Producto, "
             "pro.Marca, "
-            "pre.Precio "
+            "pro.Stock, "
+            "MAX(pre.Precio) PrecioUSD "
             "FROM producto pro "
             "JOIN precio pre ON pro.idProducto = pre.idProducto "
             "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
+            "GROUP BY cat.Categoria, pro.idProducto, pro.Producto, pro.Marca, pro.Stock "
             ";"
         )
-        empRows = cursor.fetchall()
-        response = jsonify(empRows)
-        response.status_code = 200
+        emp_rows = cursor.fetchall()
         cursor.close()
         conn.close()
+        if len(emp_rows) <= 0:
+            return not_found()
+        for row in emp_rows:
+            row["PrecioUSD"] = float(row["PrecioUSD"])  # Convierte PrecioUSD de Decimal a float
+            row["PrecioCLP"] = round(row["PrecioUSD"] * dolar)  # Agrega el precio en CLP a la fila
+        response = jsonify(emp_rows)
+        response.status_code = 200
         return response
     except Exception as e:
         print(e)
 
 
 @app.route('/producto_detalle', methods=['GET'])
-def producto_detalle():
+def producto_detalle(id_producto=None):
+    """
+    Usa request.args['idProducto'] y devuelve una respond con los datos del producto con PK igual a idProducto en la DB.
+    Los datos son enviados en formato json e incluyen:
+
+        Categoria: string, nombre de la categoría del producto.
+        idProducto: int, PK del producto.
+        Producto: string, nombre del producto.
+        Marca: string, nombre de la marca del producto.
+        Stock: int, stock del producto
+        PrecioUSD: float, valor del producto en dólares estadounidenses.
+        PrecioCLP: int, valor del producto en pesos chilenos.
+        Fecha_modificacion_precio: datetime.datetime, fecha del último cambio de precio del producto.
+
+    También es llamado por modificar_producto() y create_producto().
+    """
     try:
-        id_producto = request.args['idProducto']
+        notid = False
+        dolar = valor_dolar()  # consulta la tasa de cambio de USD a CLP
+        if not id_producto:
+            id_producto = request.args['idProducto']
+            notid = True
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute(
             "SELECT "
             "cat.Categoria, "
+            "pro.idProducto, "
             "pro.Producto, "
             "pro.Marca, "
-            "pre.Precio, "
+            "pro.Stock, "
+            "pre.Precio PrecioUSD, "
             "pre.Fecha_modificacion_precio "
             "FROM producto pro "
             "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
@@ -81,77 +154,179 @@ def producto_detalle():
             "ORDER BY pre.Fecha_modificacion_precio DESC LIMIT 1;",
             {id_producto}
         )
-        empRow = cursor.fetchone()
-        if not empRow:
-            return not_found()
-        response = jsonify(empRow)
-        # response.status_code = 200
+        emp_row = cursor.fetchone()
         cursor.close()
         conn.close()
-        # return render_template('form.html', producto_detalle=response.json)
-        return response
+        if not emp_row:
+            return not_found()
+        emp_row["PrecioUSD"] = float(emp_row["PrecioUSD"])  # Convierte PrecioUSD de Decimal a float
+        emp_row["PrecioCLP"] = round(emp_row["PrecioUSD"] * dolar)  # Agrega el precio en CLP a la fila
+        if notid:
+            response = jsonify(emp_row)
+            response.status_code = 200
+            return response
+        else:
+            return emp_row
     except Exception as e:
-        print(e)
+        error = {"type": str(type(e)), "message": str(e),
+                 "ups": "Esto lo usaba para debugear, debía borrarlo pero se me olvidó"}
+        response = jsonify(error)
+        return response
 
 
 @app.route('/modificar_producto', methods=['PUT'])
 def modificar_producto():
-    # No se pueden modificar filas cuya PK sea FK en otra tabla en el motor InnoDB
+    """
+    Extrae los datos desde request.json .form o .args, pero sólo se ha testeado desde .json.
+    Modifica los datos de un producto en la DB. Los parámetros son todos opcionales menos idProducto, estos son:
+
+        idProducto: int obligatorio, PK del producto cuyos datos se busca modificar.
+        idCategoria: int, PK de la nueva categoría del producto, valores de 1 a 6.
+        Producto: string, nuevo nombre del producto.
+        Marca: string, nombre de la nueva marca del producto.
+        Stock: int, nuevo stock del producto.
+        Precio: float, nuevo valor del producto en dólares estadounidenses. Si se ingresa, se llamará a la función
+            actualizar_ precio(id_producto=idProducto, nuevo_precio=Precio)
+
+    De ser exitosa la operación, retorna un json con 2 items:
+
+        msg: string, un mensaje que confirma que se ha alterado la DB.
+        nueva_data: dict, el resultado de producto_detalle(id_producto=idProducto) una vez actualizada la DB.
+    """
+    if request.is_json:
+        rd = request.json
+    elif len(request.args) >= 1:
+        rd = request.args.to_dict()
+    elif len(request.form) >= 1:
+        rd = request.form.to_dict()
+    else:
+        return not_found()
     try:
-        _json = request.json
-        _idProducto = _json["idProducto"]
-        _idCategoria = _json["idCategoria"]
-        _Producto = _json["Producto"]
-        _Marca = _json["Marca"]
-        _Stock = _json["Stock"]
-        if _idProducto and _idCategoria and _Producto and _Marca and _Stock and request.method == 'PUT':
-            sqlQuery = "UPDATE producto SET idCategoria=%s, Producto=%s, Marca=%s, Stock=%s WHERE idProducto=%s"
-            bindData = (_idCategoria, _Producto, _Marca, _Stock, _idProducto,)
-            conn = mysql.connect
-            cursor = conn.cursor()
-            cursor.execute(sqlQuery, bindData)
-            conn.commit()
-            response = jsonify("Producto con código {idProducto} modificado".format(idProducto=_idProducto))
-            response.status_code = 200
-            return response
+        if "idProducto" in rd.keys():
+            _idProducto = int(rd["idProducto"])
         else:
             return not_found()
-    except Exception as e:
-        print(e)
 
+        if "idCategoria" in rd.keys():
+            _idCategoria = int(rd["idCategoria"])
+        else:
+            _idCategoria = ""
 
-@app.route('/eliminar_producto', methods=['POST'])
-def actualizar_precio():
-    try:
-        Id_producto = request.args['idProducto']
-        nuevo_precio = request.args['Nuevo_Precio']
+        if "Producto" in rd.keys():
+            _Producto = str(rd["Producto"])
+        else:
+            _Producto = ""
+
+        if "Marca" in rd.keys():
+            _Marca = str(rd["Marca"])
+        else:
+            _Marca = ""
+
+        if "Stock" in rd.keys():
+            _Stock = int(rd["Stock"])
+        else:
+            _Stock = ""
+
+        if "Precio" in rd.keys():
+            _Precio = float(rd["Precio"])
+        else:
+            _Precio = ""
+
+        cambios = ""
+
+        if _idCategoria:
+            cambios += f"idCategoria={_idCategoria}"
+
+        if _Producto:
+            if _idCategoria:
+                cambios += ", "
+            cambios += f"Producto='{_Producto}'"
+
+        if _Marca:
+            if _idCategoria or _Producto:
+                cambios += ", "
+            cambios += f"Marca='{_Marca}'"
+
+        if _Stock:
+            if _idCategoria or _Producto or _Marca:
+                cambios += ", "
+            cambios += f"Stock={_Stock}"
+
         conn = mysql.connect
         cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO precio (idPrecio, idProducto, Precio_fecha, Precio_valor) "
-            "VALUES (DEFAULT, %s, CURRENT_TIMESTAMP(), %s);",
-            {Id_producto, nuevo_precio}
-        )
+
+        if cambios:
+            query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
+            print(query)
+            cursor.execute(query)
+
+        if _Precio:
+            actualizar_precio(_idProducto, _Precio, conn, cursor)
+
         conn.commit()
-        response = jsonify(f'Precio del producto de código {Id_producto} actualizado a {nuevo_precio}')
-        response.status_code = 200
         cursor.close()
         conn.close()
+
+        if cambios or _Precio:
+            nueva_data = producto_detalle(_idProducto)
+            msg = f"Producto con código {_idProducto} modificado"
+            response = jsonify({"nueva_data": nueva_data, "msg": msg})
+        else:
+            response = jsonify("No se ingresaron datos para modificar el producto")
+
+        response.status_code = 200
         return response
     except Exception as e:
         print(e)
 
 
-@app.route('/eliminar_producto', methods=['POST'])
+def actualizar_precio(id_producto, nuevo_precio, conn=None, cursor=None):
+    try:
+        notconn = False
+        notcursor = False
+
+        if not conn:
+            conn = mysql.connect
+            notconn = True
+
+        if not cursor:
+            cursor = conn.cursor()
+            notcursor = True
+
+        query = (f"INSERT INTO precio (idPrecio, idProducto, Fecha_modificacion_precio, Precio) "
+                 f"VALUES (DEFAULT, {id_producto}, CURRENT_TIMESTAMP(), {nuevo_precio});")
+        cursor.execute(query)
+
+        if notcursor:
+            cursor.close()
+
+        if notconn:
+            conn.commit()
+            conn.close()
+
+        return
+    except Exception as e:
+        raise e
+
+
+@app.route('/eliminar_producto', methods=['DELETE'])
 def eliminar_producto():
-    # No se pueden eliminar filas cuya PK sea FK en otra tabla en el motor InnoDB
+    """
+    Toma request.form['idProducto'] y elimina el producto con PK igual a idProducto.
+    Responde con un json que contiene un mensaje de confirmación.
+    Retorna un json con un mensaje que confirma o no si el producto fué eliminado.
+    """
     try:
         id_producto = request.form['idProducto']
         conn = mysql.connect
         cursor = conn.cursor()
         cursor.execute("DELETE FROM producto WHERE idProducto =%s", {id_producto})
-        conn.commit()
-        response = jsonify("Producto de código %s borrado" % id_producto)
+        if cursor.rowcount == 1:
+            msg = "Producto de código %s borrado" % id_producto
+            conn.commit()
+        else:
+            msg = "Producto de código %s No encontrado" % id_producto
+        response = jsonify(msg)
         response.status_code = 200
         cursor.close()
         conn.close()
@@ -166,9 +341,9 @@ def not_found(error=None):
         'status': 404,
         'message': 'Record not found: ' + request.url,
     }
-    respone = jsonify(message)
-    respone.status_code = 404
-    return respone
+    respond = jsonify(message)
+    respond.status_code = 404
+    return respond
 
 
 if __name__ == "__main__":
