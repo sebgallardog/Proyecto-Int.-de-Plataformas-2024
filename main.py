@@ -1,4 +1,3 @@
-# from errores import *
 from app import app
 from config import mysql
 from flask import jsonify, flash, request, render_template, redirect
