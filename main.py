@@ -247,7 +247,10 @@ def actualizar_precio(id_producto, nuevo_precio):
 
 @app.route('/eliminar_producto', methods=['POST'])
 def eliminar_producto():
-    # No se pueden eliminar filas cuya PK sea FK en otra tabla en el motor InnoDB
+    """
+    Toma request.form['idProducto'] y elimina el producto con PK igual a idProducto.
+    Responde con un json que contiene un mensaje de confirmación.
+    """
     try:
         id_producto = request.form['idProducto']
         conn = mysql.connect
