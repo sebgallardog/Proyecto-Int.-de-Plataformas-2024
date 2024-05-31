@@ -2,6 +2,7 @@ from app import app
 from config import mysql
 from flask import jsonify, request, render_template
 from ValorDolar import valor_dolar
+from transbankapi import pagarwebpay, retorno_webpay
 
 """
 OJO: El nombre de las tablas en las queries va siempre en minúscula
