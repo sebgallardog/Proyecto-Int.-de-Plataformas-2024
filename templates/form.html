@@ -3,30 +3,58 @@
 {% block title %}Formulario para pruebas{% endblock title %}
 
 {% block main %}
+
     {% if producto_detalle %}
     <table>
-    {% for k, v in producto_detalle %}
+        {% for k, v in producto_detalle %}
         <tr>
-        <td>{{ k }}:</td>
-        <td>{{ v }}</td>
+            <td>{{ k }}:</td>
+            <td>{{ v }}</td>
         </tr>
-    {% endfor %}
+        {% endfor %}
     </table>
     {% endif %}
-    <form action="/producto_detalle" method = "PUT">
+
+    <form action="/producto_detalle" method = "GET">
         <label for="idProducto">Código</label>
         <input type="text" name="idProducto" id="idProducto" required/>
         <input type="submit" value="Buscar" />
     </form>
+
     <form action="/eliminar_producto" method = "POST">
         <label for="idProductoDEL">Código</label>
         <input type="text" name="idProducto" id="idProductoDEL" required/>
         <input type="submit" value="Eliminar" />
     </form>
+
+    <form action="/listado_productos">
+        <input type="text" hidden id="listado">
+        <input type="submit" value="Productos" />
+    </form>
+
+    {% if productos %}
+    <div id="catalogo-productos">
+        {% for prod in productos %}
+        <br>
+        <table id="prod-{{ prod['idProducto'] }}">
+            {% for k,v in prod.items() %}
+            <tr>
+                <td>{{ k }}:</td>
+                <td class="{{ k }}">{{ v }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <input type="submit" value="Agregar" onclick="agregarProducto({{ prod['idProducto'] }})">
+        <br>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% if error %}
     <br/>
     <div>Tipo: {{ error.type }}</div>
     <div>Error: {{ error.message }}</div>
     <br/>
     {% endif %}
+
 {% endblock main %}
