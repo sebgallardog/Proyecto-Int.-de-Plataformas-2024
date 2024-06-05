@@ -12,7 +12,9 @@ OJO: El nombre de las tablas en las queries va siempre en minúscula
 @app.route('/', methods=['GET'])
 def home():
     """Esto es sólo para realizar las pruebas"""
-    return render_template('form.html')
+    response = productos()
+    prod = response.json
+    return render_template('form.html', productos=prod)
 
 
 @app.route('/create', methods=['POST'])
@@ -97,6 +99,7 @@ def productos():
             "JOIN precio pre ON pro.idProducto = pre.idProducto "
             "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
             "GROUP BY cat.Categoria, pro.idProducto, pro.Producto, pro.Marca, pro.Stock "
+            "ORDER BY pro.idProducto "
             ";"
         )
         emp_rows = cursor.fetchall()
@@ -310,7 +313,7 @@ def actualizar_precio(id_producto, nuevo_precio, conn=None, cursor=None):
         raise e
 
 
-@app.route('/eliminar_producto', methods=['DELETE'])
+@app.route('/eliminar_producto', methods=['POST'])
 def eliminar_producto():
     """
     Toma request.form['idProducto'] y elimina el producto con PK igual a idProducto.
@@ -349,3 +352,4 @@ def not_found(error=None):
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
+    
