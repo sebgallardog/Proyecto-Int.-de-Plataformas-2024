@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado del pago{% endblock title %}
+
+{% block main %}
+<table>
+            {% for k,v in response.items() %}
+                <tr>
+                    <td>{{ k }}:</td>
+                    <td class="{{ k }}">{{ v }}</td>
+                </tr>
+            {% endfor %}
+</table>
+{% endblock main %}

@@ -14,7 +14,7 @@
         {% endfor %}
     </table>
     {% endif %}
-
+    <h2>Test de API</h2>
     <form action="/producto_detalle" method = "GET">
         <label for="idProducto">Código</label>
         <input type="text" name="idProducto" id="idProducto" required/>
@@ -28,11 +28,13 @@
     </form>
 
     <form action="/listado_productos">
+        <label for="listado">Catálogo de productos</label>
         <input type="text" hidden id="listado">
         <input type="submit" value="Productos" />
     </form>
 
     {% if productos %}
+    <h2>Catálogo de productos</h2>
     <div id="catalogo-productos">
         {% for prod in productos %}
         <br>
@@ -44,11 +46,23 @@
             </tr>
             {% endfor %}
         </table>
-        <input type="submit" value="Agregar" onclick="agregarProducto({{ prod['idProducto'] }})">
+        <input type="submit" value="Agregar 1" onclick="agregarProducto({{ prod['idProducto'] }})">
+        <input type="submit" value="Quitar 1" onclick="quitarProducto({{ prod['idProducto'] }})">
+        <label for="prod-{{ prod['idProducto'] }}-cantidad">En el carro:</label>
+        <input id="prod-{{ prod['idProducto'] }}-cantidad" name="prod-{{ prod['idProducto'] }}-cantidad" value="0" />
         <br>
         {% endfor %}
     </div>
     {% endif %}
+
+{#  Botón de pago  #}
+
+    <br/>
+    <form action='/procesarPago' method="GET">
+        <label for="carritoTotal">Total a pagar:</label>
+        <input id="carritoTotal" name="carritoTotal" readonly />
+        <input type="submit" value="Pagar" />
+    </form>
 
     {% if error %}
     <br/>
