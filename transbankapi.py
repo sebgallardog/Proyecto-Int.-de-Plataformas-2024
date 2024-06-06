@@ -1,14 +1,20 @@
 from app import app
-from flask import jsonify, request, redirect
+from flask import jsonify, request, redirect, url_for
 from transbank.webpay.webpay_plus.transaction import Transaction
 
 transaction = Transaction()
 
 
+@app.route('/procesarPago', methods=['GET'])
+def procesar_pago():
+    amount = request.args["carritoTotal"]
+    return redirect(url_for('pagarwebpay', amount=amount))
+
+
 @app.route('/pagarwebpay', methods=['GET'])
 def pagarwebpay():
     try:
-        amount = 200
+        amount = request.args['amount']
         buy_order = 'order12345'
         session_id = 'session12345'
         return_url = 'http://localhost:5000/retorno'

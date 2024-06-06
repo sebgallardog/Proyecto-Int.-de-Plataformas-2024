@@ -44,11 +44,22 @@
             </tr>
             {% endfor %}
         </table>
-        <input type="submit" value="Agregar" onclick="agregarProducto({{ prod['idProducto'] }})">
+        <input type="submit" value="Agregar 1" onclick="agregarProducto({{ prod['idProducto'] }})">
+        <input type="submit" value="Quitar 1" onclick="quitarProducto({{ prod['idProducto'] }})">
         <br>
         {% endfor %}
     </div>
     {% endif %}
+
+{#  Botón de pago  #}
+
+    <input type="submit" value="Pagar" onclick="procesarPago()">
+    <br/>
+    <form action='/procesarPago' method="GET">
+        <label for="carritoTotal">Total a pagar:</label>
+        <input id="carritoTotal" name="carritoTotal" readonly />
+        <input type="submit" value="Pagar" />
+    </form>
 
     {% if error %}
     <br/>
