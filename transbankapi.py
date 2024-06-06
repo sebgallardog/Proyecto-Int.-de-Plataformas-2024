@@ -14,10 +14,11 @@ def procesar_pago():
 @app.route('/pagarwebpay', methods=['GET'])
 def pagarwebpay():
     try:
+        host_url = request.host_url
         amount = request.args['amount']
         buy_order = 'order12345'
         session_id = 'session12345'
-        return_url = 'http://localhost:5000/retorno'
+        return_url = f'{host_url}retorno'
         response = transaction.create(buy_order, session_id, amount, return_url)
         redirect_url = f"{response['url']}?token_ws={response['token']}"
         return redirect(redirect_url)
