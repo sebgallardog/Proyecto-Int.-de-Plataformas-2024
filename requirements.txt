@@ -3,4 +3,3 @@ Flask-Cors==4.0.1
 Flask-MySQLdb==2.0.0
 transbank-sdk==5.0.0
 bcchapi~=1.0.1
-requests==2.32.2

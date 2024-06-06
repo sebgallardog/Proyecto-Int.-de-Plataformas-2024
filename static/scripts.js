@@ -5,18 +5,10 @@ if (!carrito) {
 console.log(carrito);
 
 const agregarProducto = (idProducto) => {
-    const existe = carrito.some(
-        (prod) => {
-            return prod.idProducto === idProducto.toString();
-        }
-    );
-    if (existe) {
-        const prod = carrito.map((prod) => {
-            if (prod.idProducto === idProducto.toString()) {
-                prod.cantidad++;
-                prod.cantidad = prod.cantidad.toString();
-            }
-        });
+    let prod = carrito.find((prod) => prod.idProducto === idProducto.toString());
+    if (prod) {
+        prod.cantidad++;
+        prod.cantidad = prod.cantidad.toString();
     } else {
         let columns = ["Categoria", "Marca", "PrecioCLP", "PrecioUSD", "Producto", "Stock", "idProducto"];
         let item = {}
@@ -30,6 +22,7 @@ const agregarProducto = (idProducto) => {
     }
     console.log(carrito);
     localStorage.setItem("carrito", JSON.stringify(carrito));
+    actualizarCantidadDisplay(idProducto)
     actualizarTotal();
 };
 
@@ -40,23 +33,32 @@ const quitarProducto = (idProducto) => {
         }
     );
     if (existe) {
-        const prod = carrito.map((prod) => {
-            if (prod.idProducto === idProducto.toString() && +prod.cantidad !== 1) {
-                prod.cantidad--;
-                prod.cantidad = prod.cantidad.toString();
-            } else {
-                carrito = carrito.filter((prod) => prod.idProducto !== idProducto.toString());
-            }
-        });
+        let prod = carrito.find((prod) => prod.idProducto === idProducto.toString());
+        if (+prod.cantidad > 1) {
+            prod.cantidad--;
+            prod.cantidad = prod.cantidad.toString();
+        } else {
+            carrito = carrito.filter((prod) => prod.idProducto !== idProducto.toString());
+        }
         console.log(carrito);
         localStorage.setItem("carrito", JSON.stringify(carrito));
+        actualizarCantidadDisplay(idProducto);
         actualizarTotal();
     }
 };
 
+function actualizarCantidadDisplay(idProducto) {
+    const elementId = `prod-${idProducto}-cantidad`;
+    let p = carrito.find((prod) => prod.idProducto === idProducto.toString());
+    if (p) {
+        document.getElementById(elementId).setAttribute("value", p.cantidad);
+    } else {
+        document.getElementById(elementId).setAttribute("value", "0");
+    }
+}
+
 function actualizarTotal() {
     document.getElementById("carritoTotal").setAttribute("value", calcularTotal().toString());
-
 }
 
 function calcularTotal() {
@@ -71,6 +73,9 @@ function calcularTotal() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    for (prod of carrito) {
+        actualizarCantidadDisplay(+prod.idProducto)
+    }
     actualizarTotal();
 })
 

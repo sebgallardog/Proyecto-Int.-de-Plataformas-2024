@@ -1,5 +1,5 @@
 from app import app
-from flask import jsonify, request, redirect, url_for
+from flask import jsonify, request, redirect, url_for, render_template
 from transbank.webpay.webpay_plus.transaction import Transaction
 
 transaction = Transaction()
@@ -30,6 +30,6 @@ def retorno_webpay():
     try:
         token = request.args.get('token_ws')
         response = transaction.commit(token)
-        return jsonify(response)
+        return render_template('resultadopago.html', response=response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
