@@ -179,7 +179,7 @@ def producto_detalle(id_producto=None):
         return response
 
 
-@app.route('/modificar_producto', methods=['PUT'])
+@app.route('/modificar_producto', methods=['POST'])
 def modificar_producto():
     """
     Extrae los datos desde request.json .form o .args, pero sólo se ha testeado desde .json.
@@ -200,62 +200,46 @@ def modificar_producto():
     """
     if request.is_json:
         rd = request.json
+        print(rd)
     elif len(request.args) >= 1:
         rd = request.args.to_dict()
+        print(rd)
     elif len(request.form) >= 1:
         rd = request.form.to_dict()
+        print(rd)
     else:
         return not_found()
     try:
-        if "idProducto" in rd.keys():
-            _idProducto = int(rd["idProducto"])
+        cambios = ""
+        if rd["idProducto"]:
+            _idProducto = int(float(rd["idProducto"]))
         else:
             return not_found()
 
-        if "idCategoria" in rd.keys():
-            _idCategoria = int(rd["idCategoria"])
-        else:
-            _idCategoria = ""
+        if rd["idCategoria"]:
+            cambios += f"idCategoria={rd['idCategoria']}"
 
-        if "Producto" in rd.keys():
-            _Producto = str(rd["Producto"])
-        else:
-            _Producto = ""
+        if rd["Producto"]:
+            if rd["idCategoria"]:
+                cambios += ", "
+            cambios += f"Producto='{rd['Producto']}'"
 
-        if "Marca" in rd.keys():
-            _Marca = str(rd["Marca"])
-        else:
-            _Marca = ""
+        if rd["Marca"]:
+            if rd["idCategoria"] or rd["Producto"]:
+                cambios += ", "
+            cambios += f"Marca='{rd['Marca']}'"
 
-        if "Stock" in rd.keys():
-            _Stock = int(rd["Stock"])
-        else:
-            _Stock = ""
+        if rd["Stock"]:
+            if rd["idCategoria"] or rd['Producto'] or rd['Marca']:
+                cambios += ", "
+            cambios += f"Stock={rd['Stock']}"
 
-        if "Precio" in rd.keys():
+        print(cambios)
+
+        if rd["Precio"]:
             _Precio = float(rd["Precio"])
         else:
             _Precio = ""
-
-        cambios = ""
-
-        if _idCategoria:
-            cambios += f"idCategoria={_idCategoria}"
-
-        if _Producto:
-            if _idCategoria:
-                cambios += ", "
-            cambios += f"Producto='{_Producto}'"
-
-        if _Marca:
-            if _idCategoria or _Producto:
-                cambios += ", "
-            cambios += f"Marca='{_Marca}'"
-
-        if _Stock:
-            if _idCategoria or _Producto or _Marca:
-                cambios += ", "
-            cambios += f"Stock={_Stock}"
 
         conn = mysql.connect
         cursor = conn.cursor()
@@ -265,14 +249,14 @@ def modificar_producto():
             print(query)
             cursor.execute(query)
 
-        if _Precio:
-            actualizar_precio(_idProducto, _Precio, conn, cursor)
+        if rd["Precio"]:
+            actualizar_precio(_idProducto, float(rd["Precio"]), conn, cursor)
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        if cambios or _Precio:
+        if cambios or rd["Precio"]:
             nueva_data = producto_detalle(_idProducto)
             msg = f"Producto con código {_idProducto} modificado"
             response = jsonify({"nueva_data": nueva_data, "msg": msg})
@@ -300,6 +284,7 @@ def actualizar_precio(id_producto, nuevo_precio, conn=None, cursor=None):
 
         query = (f"INSERT INTO precio (idPrecio, idProducto, Fecha_modificacion_precio, Precio) "
                  f"VALUES (DEFAULT, {id_producto}, CURRENT_TIMESTAMP(), {nuevo_precio});")
+        print(query)
         cursor.execute(query)
 
         if notcursor:
