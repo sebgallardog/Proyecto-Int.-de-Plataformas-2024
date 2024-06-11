@@ -89,18 +89,19 @@ def productos():
         cursor = conn.cursor()
         cursor.execute(
             "SELECT "
-            "cat.Categoria, "
-            "pro.idProducto, "
-            "pro.Producto, "
-            "pro.Marca, "
-            "pro.Stock, "
-            "MAX(pre.Precio) PrecioUSD "
-            "FROM producto pro "
-            "JOIN precio pre ON pro.idProducto = pre.idProducto "
-            "JOIN categoria cat ON pro.idCategoria = cat.idCategoria "
-            "GROUP BY cat.Categoria, pro.idProducto, pro.Producto, pro.Marca, pro.Stock "
-            "ORDER BY pro.idProducto "
-            ";"
+            "P.idProducto, "
+            "P.Producto, "
+            "P.Marca, "
+            "P.Stock, "
+            "C.Categoria, "
+            "PR.Precio PrecioUSD "
+            "FROM Producto P "
+            "INNER JOIN Categoria C ON P.idCategoria = C.idCategoria "
+            "INNER JOIN Precio PR ON P.idProducto = PR.idProducto "
+            "INNER JOIN ("
+                "SELECT idProducto, MAX(Fecha_modificacion_precio) AS MaxFecha "
+                "FROM Precio GROUP BY idProducto"
+            ") MaxPrecio ON PR.idProducto = MaxPrecio.idProducto AND PR.Fecha_modificacion_precio = MaxPrecio.MaxFecha;"
         )
         emp_rows = cursor.fetchall()
         cursor.close()
