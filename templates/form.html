@@ -33,6 +33,75 @@
         <input type="submit" value="Productos" />
     </form>
 
+    <h3>Crear producto</h3>
+    <form action="/create" method = "POST">
+
+        <label for="idCategoriaCreate">Categoría</label>
+        <select name="idCategoria" id="idCategoriaCreate">
+            <option value="1">Herramientas Manuales</option>
+            <option value="2">Materiales Básicos</option>
+            <option value="3">Equipos de Seguridad</option>
+            <option value="4">Tornillos y Anclajes</option>
+            <option value="5">Fijaciones y Adhesivos</option>
+            <option value="6">Equipos de Medición</option>
+        </select>
+        <br>
+
+        <label for="ProductoCreate">Producto</label>
+        <input type="text" name="Producto" id="ProductoCreate" required>
+        <br>
+        <label for="MarcaCreate">Marca</label>
+        <input type="text" name="Marca" id="MarcaCreate" required>
+        <br>
+        <label for="StockCreate">Stock</label>
+        <input type="number" name="Stock" id="StockCreate" required>
+        <br>
+        <label for="PrecioCreate">Precio (en USD)</label>
+        <input type="number" name="Precio" id="PrecioCreate" step=".01" required>
+        <br>
+        <input type="submit" value="Crear nuevo producto" />
+    </form>
+
+    <h3>Modificar producto</h3>
+    <form action="/modificar_producto" method = "POST" id="ModForm" onsubmit="return validarMod()">
+        <label for="idProductoMod">Producto</label>
+        <select name="idProducto" id="idProductoMod">
+            <option value="">Seleccione un producto</option>
+        {% if productos %}
+            {% for prod in productos %}
+            <option value="{{ prod['idProducto'] }}">id:{{ prod['idProducto'] }} - {{ prod['Producto'] }}</option>
+            {% endfor %}
+        {% endif %}
+        </select>
+        <br>
+        <label for="idCategoriaMod">Categoría</label>
+
+        <select name="idCategoria" id="idCategoriaMod">
+            <option value="">No modificar</option>
+            <option value="1">Herramientas Manuales</option>
+            <option value="2">Materiales Básicos</option>
+            <option value="3">Equipos de Seguridad</option>
+            <option value="4">Tornillos y Anclajes</option>
+            <option value="5">Fijaciones y Adhesivos</option>
+            <option value="6">Equipos de Medición</option>
+        </select>
+        <br>
+
+        <label for="ProductoMod">Nombre Producto</label>
+        <input type="text" name="Producto" id="ProductoMod">
+        <br>
+        <label for="MarcaMod">Marca</label>
+        <input type="text" name="Marca" id="MarcaMod">
+        <br>
+        <label for="StockMod">Stock</label>
+        <input type="number" name="Stock" id="StockMod">
+        <br>
+        <label for="PrecioMod">Precio (en USD)</label>
+        <input type="number" name="Precio" id="PrecioMod" step=".01">
+        <br>
+        <input type="submit" value="Modificar producto" />
+    </form>
+
     {% if productos %}
     <h2>Catálogo de productos</h2>
     <div id="catalogo-productos">
@@ -49,7 +118,7 @@
         <input type="submit" value="Agregar 1" onclick="agregarProducto({{ prod['idProducto'] }})">
         <input type="submit" value="Quitar 1" onclick="quitarProducto({{ prod['idProducto'] }})">
         <label for="prod-{{ prod['idProducto'] }}-cantidad">En el carro:</label>
-        <input id="prod-{{ prod['idProducto'] }}-cantidad" name="prod-{{ prod['idProducto'] }}-cantidad" value="0" />
+        <input id="prod-{{ prod['idProducto'] }}-cantidad" name="prod-{{ prod['idProducto'] }}-cantidad" value="0" readonly/>
         <br>
         {% endfor %}
     </div>
@@ -70,5 +139,30 @@
     <div>Error: {{ error.message }}</div>
     <br/>
     {% endif %}
-
 {% endblock main %}
+{% block scripts %}
+    <script src={{ 'static/carro.js' }}></script>
+    <script>
+        function validarMod() {
+            let form = document.forms.namedItem("ModForm");
+            let validez = false;
+            for (let i = 0; i < form.length; i++) {
+                console.log(form[i].name);
+                console.log(form[i].value);
+                if (form[i].name !== "idProducto" && form[i].type !== "submit") {
+                    if (form[i].value !== "") {
+                        console.log("cheking: " + form[i].type);
+                        validez = true;
+                    }
+                }
+            }
+            console.log(validez);
+            console.log(form["idProducto"].value);
+            if (form["idProducto"].value === ""){
+                validez = false;
+            }
+            console.log(validez);
+            return validez;
+        }
+    </script>
+{% endblock scripts %}
