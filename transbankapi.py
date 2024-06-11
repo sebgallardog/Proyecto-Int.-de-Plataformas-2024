@@ -31,6 +31,7 @@ def retorno_webpay():
     try:
         token = request.args.get('token_ws')
         response = transaction.commit(token)
-        return render_template('resultadopago.html', response=response)
+        res = jsonify(response).json
+        return render_template('resultadopago.html', response=res)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
