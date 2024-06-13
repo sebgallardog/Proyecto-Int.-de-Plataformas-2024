@@ -325,6 +325,31 @@ def eliminar_producto():
         print(e)
 
 
+@app.route('/update_stock', methods=['POST'])
+def update_stock():
+    e="D"
+    print(e)
+    try:
+        form = request.json['carrito']
+        print(form)
+        conn = mysql.connect
+        cursor = conn.cursor()
+        for item in form:
+            id_producto = item["idProducto"]
+            cantidad = int(item["cantidad"])
+            query = f"SELECT Stock FROM producto WHERE idProducto={id_producto}"
+            cursor.execute(query)
+            emp_row = cursor.fetchone()
+            stock = int(emp_row["Stock"]) - cantidad
+            query = f"UPDATE producto SET Stock={stock} WHERE idProducto={id_producto}"
+            cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(e)
+
+
 @app.errorhandler(404)
 def not_found(error=None):
     message = {
@@ -337,5 +362,5 @@ def not_found(error=None):
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', debug=True)
     

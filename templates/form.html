@@ -127,9 +127,9 @@
 {#  Botón de pago  #}
 
     <br/>
-    <form action='/procesarPago' method="GET">
+    <form action='/pagarwebpay' method="POST">
         <label for="carritoTotal">Total a pagar:</label>
-        <input id="carritoTotal" name="carritoTotal" readonly />
+        <input id="carritoTotal" name="amount" readonly />
         <input type="submit" value="Pagar" />
     </form>
 
@@ -142,6 +142,8 @@
 {% endblock main %}
 {% block scripts %}
     <script src={{ 'static/carro.js' }}></script>
+    <script>
+    </script>
     <script>
         function validarMod() {
             let form = document.forms.namedItem("ModForm");
