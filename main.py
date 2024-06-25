@@ -349,7 +349,6 @@ def update_stock():
     except Exception as e:
         print(e)
 
-
 @app.errorhandler(404)
 def not_found(error=None):
     message = {
@@ -363,4 +362,3 @@ def not_found(error=None):
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
-    
