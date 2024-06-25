@@ -200,13 +200,10 @@ def modificar_producto():
     """
     if request.is_json:
         rd = request.json
-        print(rd)
     elif len(request.args) >= 1:
         rd = request.args.to_dict()
-        print(rd)
     elif len(request.form) >= 1:
         rd = request.form.to_dict()
-        print(rd)
     else:
         return not_found()
     try:
@@ -246,7 +243,6 @@ def modificar_producto():
 
         if cambios:
             query = f"UPDATE producto SET {cambios} WHERE idProducto={_idProducto}"
-            print(query)
             cursor.execute(query)
 
         if rd["Precio"]:
@@ -284,7 +280,6 @@ def actualizar_precio(id_producto, nuevo_precio, conn=None, cursor=None):
 
         query = (f"INSERT INTO precio (idPrecio, idProducto, Fecha_modificacion_precio, Precio) "
                  f"VALUES (DEFAULT, {id_producto}, CURRENT_TIMESTAMP(), {nuevo_precio});")
-        print(query)
         cursor.execute(query)
 
         if notcursor:
@@ -327,11 +322,9 @@ def eliminar_producto():
 
 @app.route('/update_stock', methods=['POST'])
 def update_stock():
-    e="D"
-    print(e)
+    print("updating stock")
     try:
         form = request.json['carrito']
-        print(form)
         conn = mysql.connect
         cursor = conn.cursor()
         for item in form:
@@ -342,10 +335,13 @@ def update_stock():
             emp_row = cursor.fetchone()
             stock = int(emp_row["Stock"]) - cantidad
             query = f"UPDATE producto SET Stock={stock} WHERE idProducto={id_producto}"
+            print(query)
             cursor.execute(query)
         conn.commit()
+        print("stock updated")
         cursor.close()
         conn.close()
+        return ('{"success": "true"}', 201)
     except Exception as e:
         print(e)
 

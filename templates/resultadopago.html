@@ -16,18 +16,19 @@
 {% block scripts %}
     <script type="text/javascript">
         {% if response['status'] == 'AUTHORIZED' %}
-        const carrito = JSON.parse(localStorage.getItem("carrito"))
-        //const carrito = localStorage.getItem('carrito')
+        let carrito = JSON.parse(localStorage.getItem("carrito"))
+        //let carrito = localStorage.getItem('carrito')
         if (carrito){
             let xhr = new XMLHttpRequest();
             xhr.open("POST", "/update_stock", true);
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
             xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4 && xhr.status === 200) {
+                if (xhr.readyState === 4 && xhr.status === 201) {
+                    console.log('Response Text:', xhr.responseText)
                     let response = JSON.parse(xhr.responseText);
                     if (response.success) {
                         console.log('Stock updated successfully');
-                        localStorage.removeItem('shoppingCart'); // Clear the shopping cart
+                        localStorage.removeItem('carrito'); // Clear the shopping cart
                     } else {
                         console.error('Error updating stock:', response.error);
                     }
@@ -36,6 +37,7 @@
                 }
             };
             xhr.send(JSON.stringify({ carrito: carrito }));
+	        carrito = []
         }
         {% endif %}
     </script>

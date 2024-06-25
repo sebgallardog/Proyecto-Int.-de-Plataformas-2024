@@ -29,7 +29,6 @@ def pagarwebpay():
 @app.route('/retorno', methods=['GET'])
 def retorno_webpay():
     try:
-        print("hola")
         host_url = request.host_url
         token = request.args.get('token_ws')
         response = transaction.commit(token)
