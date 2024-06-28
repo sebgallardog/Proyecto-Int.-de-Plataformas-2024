@@ -345,6 +345,12 @@ def update_stock():
     except Exception as e:
         print(e)
 
+
+@app.route("/testBcchAPI", methods=['GET'])
+def test_api_banco():
+    return jsonify("Dólar hoy: " + str(valor_dolar()))
+
+
 @app.errorhandler(404)
 def not_found(error=None):
     message = {
